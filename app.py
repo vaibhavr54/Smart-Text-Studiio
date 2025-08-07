@@ -61,5 +61,8 @@ def suggest():
     suggestions = predict_top_k_words(seed_text)
     return jsonify({'suggestions': suggestions})
 
+import os
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
