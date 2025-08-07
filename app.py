@@ -26,15 +26,18 @@ def predict_top_k_words(seed_text, k=3):
     top_indices = np.argsort(preds)[-k:][::-1]
     return [idx2word.get(idx, '') for idx in top_indices]
 
-def generate_text(seed_text, n_words):
-    result = seed_text.lower().split()
-    for _ in range(n_words):
-        input_seq = result[-seq_len:]
-        token_seq = [word2idx.get(w, 0) for w in input_seq]
-        token_seq = pad_sequences([token_seq], maxlen=seq_len)
-        predicted_idx = np.argmax(model.predict(token_seq, verbose=0), axis=-1)[0]
-        result.append(idx2word.get(predicted_idx, ''))
-    return ' '.join(result)
+@app.route('/generate', methods=['POST'])
+def generate():
+    try:
+        seed_text = request.form['seed_text_gen']
+        n_words = int(request.form['n_words_gen'])
+        result = generate_text(seed_text, n_words)
+        session['generated'] = result
+        session['seed'] = seed_text
+        return redirect(url_for('home'))
+    except Exception as e:
+        print(f"Error in /generate: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/')
 def home():
