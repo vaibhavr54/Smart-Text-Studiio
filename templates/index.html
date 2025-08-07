@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Text Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(to right, #e0eafc, #cfdef3);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 700px;
+            background: #fff;
+            padding: 30px 40px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .module {
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: #34495e;
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .suggestions {
+            margin-top: 15px;
+        }
+
+        .suggestions button {
+            background-color: #eee;
+            color: #333;
+            margin-right: 10px;
+            margin-top: 8px;
+            padding: 8px 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .suggestions button:hover {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0056b3;
+        }
+
+        @media screen and (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1><i class="fas fa-keyboard"></i> Smart Text Studio </h1>
+
+    <!-- Module 1: Text Generation -->
+    <div class="module">
+        <h2><i class="fas fa-pen"></i> Text Generation</h2>
+        <form method="POST" action="/generate">
+            <label for="input_text_gen">Start your sentence:</label>
+            <input type="text" id="input_text_gen" name="seed_text_gen" required>
+
+            <label for="n_words_gen">No. of words to generate:</label>
+            <input type="number" id="n_words_gen" name="n_words_gen" value="10" min="1">
+
+            <button type="submit"><i class="fas fa-magic"></i> Generate</button>
+        </form>
+        {% if generated %}
+        <div class="output">
+            <strong>Generated Text:</strong>
+            <p>{{ generated }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Module 2: Smart Keyboard -->
+    <div class="module">
+        <h2><i class="fas fa-lightbulb"></i> Smart Keyboard</h2>
+        <label for="input_text_smart">Type your text:</label>
+        <input type="text" id="input_text_smart" placeholder="Type here...">
+
+        <div class="suggestions" id="suggestions">
+            <!-- Top-3 predictions will appear here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const input = document.getElementById('input_text_smart');
+    const suggestions = document.getElementById('suggestions');
+
+    input.addEventListener('input', async () => {
+        const text = input.value.trim();
+        const words = text.split(/\s+/);
+        if (words.length >= 3) {
+            const response = await fetch('/suggest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ seed: words.slice(-5).join(" ") })
+            });
+            const data = await response.json();
+            showSuggestions(data.suggestions);
+        } else {
+            suggestions.innerHTML = '';
+        }
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab' && suggestions.children.length > 0) {
+            e.preventDefault();
+            const word = suggestions.children[0].innerText;
+            input.value = input.value.trim() + " " + word + " ";
+            input.dispatchEvent(new Event('input'));
+            suggestions.innerHTML = '';
+        }
+    });
+
+    function showSuggestions(words) {
+        suggestions.innerHTML = '';
+        words.forEach(w => {
+            const btn = document.createElement('button');
+            btn.innerText = w;
+            btn.addEventListener('click', () => {
+                input.value = input.value.trim() + " " + w + " ";
+                input.dispatchEvent(new Event('input'));
+            });
+            suggestions.appendChild(btn);
+        });
+    }
+</script>
+</body>
+</html>
